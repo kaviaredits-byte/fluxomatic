@@ -1,0 +1,373 @@
+    <!DOCTYPE html>
+    <!-- sticker page -->
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Flux-o-matic</title>
+        <link rel="icon" type="image/x-icon" href="assets/favicon.png">
+
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: #764ba2;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+
+            #logo {
+                position: absolute;
+                top: 30px;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 50px;
+                height: auto;
+                border-radius: 50px;
+            }
+            .content-row {
+            
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                gap: 20px;
+                padding: 10px 30px;
+            }
+
+            /* --- strip side --- */
+            .strip-wrapper {
+                position: relative;
+                flex-shrink: 0;
+            }
+
+            #finalStrip {
+                display: block;
+                width: 700px;
+                height: auto;
+            }
+
+            /* stickers dropped onto the strip live here */
+            #stickerLayer {
+                position: absolute;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                pointer-events: none; /* clicks pass through to drag logic */
+                overflow: hidden;
+            }
+
+            .placed-sticker {
+                position: absolute;
+                cursor: grab;
+                user-select: none;
+                pointer-events: all;
+                width: 80px;
+                height: auto;
+            }
+
+            .placed-sticker:active { cursor: grabbing; }
+
+            /* --- sticker panel side --- */
+            .sticker-panel {
+                width: 220px;
+                flex-shrink: 0;
+                background: #452564;
+                border: 3px solid gold;
+                border-radius: 12px;
+                padding: 15px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                max-height: 520px;
+            }
+
+            .sticker-panel h2 {
+                color: white;
+                font-size: 1.1rem;
+                text-align: center;
+            }
+
+            .sticker-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                overflow-y: auto;      /* scroll if too many stickers */
+                padding-right: 4px;
+            }
+
+            /* thin scrollbar so it doesn't look ugly */
+            .sticker-grid::-webkit-scrollbar { width: 5px; }
+            .sticker-grid::-webkit-scrollbar-track { background: #2a1738; border-radius: 5px; }
+            .sticker-grid::-webkit-scrollbar-thumb { background: gold; border-radius: 5px; }
+
+            .sticker-btn {
+                background: #2a1738;
+                border: 2px solid #764ba2;
+                border-radius: 8px;
+                padding: 6px;
+                cursor: pointer;
+                transition: border-color 0.2s;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .sticker-btn:hover { border-color: gold; }
+
+            .sticker-btn img {
+                width: 100%;
+                height: 60px;
+                object-fit: contain;
+                pointer-events: none;
+            }
+
+            /* --- export button --- */
+            .export-btn {
+                margin-top: 20px;
+                padding: 14px 30px;
+                background: #452564;
+                color: white;
+                border: 3px solid gold;
+                border-radius: 12px;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: 0.3s;
+            }
+
+            .export-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+            }
+            .button-col {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                flex-shrink: 0;
+                justify-content: flex-start;
+                padding-top: 10px;
+            }
+
+            .action-btn {
+                width: 160px;
+                padding: 14px 20px;
+                background: #452564;
+                color: white;
+                border: 3px solid gold;
+                border-radius: 12px;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: 0.3s;
+                text-align: center;
+            }
+
+            .action-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+            }
+
+            .action-btn.redo {
+                border-color: #ff6b6b;
+            }
+
+            .action-btn.redo:hover {
+                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+            }
+        </style>
+    </head>
+    <body>
+
+        <img id="logo" src="assets/logo.png" alt="Logo">
+
+        <div class="content-row">
+
+            <!-- LEFT: photo strip + draggable sticker layer on top -->
+            <div class="strip-wrapper" id="stripWrapper">
+                <img id="finalStrip">
+                <div id="stickerLayer"></div>
+            </div>
+
+            <div class="sticker-panel">
+                <h2>Stickers</h2>
+                <div class="sticker-grid" id="stickerGrid">
+                    <!-- js here -->
+                </div>  
+            </div>
+
+            <div class="button-col">
+                <button class="action-btn redo" id="redoBtn">Undo All</button>
+                <button class="action-btn" id="exportBtn">Export</button>
+            </div>
+
+
+        </div>
+
+        <script>
+            const img = document.getElementById('finalStrip');  
+            const savedStrip = localStorage.getItem("finalPhotostrip");
+            if (savedStrip) {
+                const finalStripEl = document.getElementById("finalStrip");
+                finalStripEl.onload = () => {
+                    console.log('natural:', finalStripEl.naturalWidth, finalStripEl.naturalHeight);
+                    console.log('displayed:', finalStripEl.offsetWidth, finalStripEl.offsetHeight);
+                };
+                finalStripEl.src = savedStrip;
+            }
+
+
+            const STICKERS = [
+                "assets/sticker_banner1_yume.png",
+                "assets/sticker_banner2_yume.png",
+                "assets/sticker_banner3_yume.png",
+                "assets/sticker_banner4_yume.png",
+                "assets/sticker_cat_yume.png",
+                "assets/sticker_drip1_yume.png",  
+                "assets/sticker_drip2_yume.png",
+                "assets/sticker_flower_yume.png", 
+                "assets/sticker_goon_yume.png", 
+                "assets/sticker_risk_yume.png", 
+                "assets/sticker_lava_yume.png", 
+                "assets/sticker_trio_yume.png", 
+                "assets/sticker_chibi_ellie.png",
+                "assets/sticker_chibi1_lukas.png",
+                "assets/sticker_chibi2_lukas.png",
+                "assets/sticker_chibi_zan.png",
+                "assets/sticker_chibi_sunny.png",
+                "assets/sticker_rat_kavi.png",
+            ];
+
+            const grid = document.getElementById("stickerGrid");
+            STICKERS.forEach(src => {
+                const btn = document.createElement("button");
+                btn.className = "sticker-btn";
+                const img = document.createElement("img");
+                img.src = src;
+                btn.appendChild(img);
+                btn.addEventListener("click", () => placeSticker(src));
+                grid.appendChild(btn);
+            });
+
+            const stickerLayer = document.getElementById("stickerLayer");
+
+            function placeSticker(src) {
+                const sticker = document.createElement("img");
+                sticker.src = src;
+                sticker.className = "placed-sticker";
+
+                sticker.style.left = "50%";
+                sticker.style.top = "50%";
+                sticker.style.transform = "translate(-50%, -50%)";
+
+                stickerLayer.appendChild(sticker);
+                makeDraggable(sticker);
+            }
+
+            function makeDraggable(el) {
+                let startX, startY, startLeft, startTop;
+
+                function onDown(e) {
+                    e.preventDefault();
+                    const point = e.touches ? e.touches[0] : e;
+
+                    // remove centering transform once we start dragging
+                    // so left/top are the real position
+                    const rect = el.getBoundingClientRect();
+                    const parentRect = stickerLayer.getBoundingClientRect();
+                    el.style.transform = "none";
+                    el.style.left = (rect.left - parentRect.left) + "px";
+                    el.style.top  = (rect.top  - parentRect.top)  + "px";
+
+                    startX    = point.clientX;
+                    startY    = point.clientY;
+                    startLeft = parseFloat(el.style.left);
+                    startTop  = parseFloat(el.style.top);
+
+                    window.addEventListener("mousemove", onMove);
+                    window.addEventListener("mouseup",   onUp);
+                    window.addEventListener("touchmove", onMove, { passive: false });
+                    window.addEventListener("touchend",  onUp);
+                }
+
+                function onMove(e) {
+                    e.preventDefault();
+                    const point = e.touches ? e.touches[0] : e;
+                    const dx = point.clientX - startX;
+                    const dy = point.clientY - startY;
+
+                    // clamp so sticker stays inside the strip wrapper
+                    const parentW = stickerLayer.offsetWidth;
+                    const parentH = stickerLayer.offsetHeight;
+                    const sW = el.offsetWidth;
+                    const sH = el.offsetHeight;
+
+                    const newLeft = Math.min(Math.max(startLeft + dx, 0), parentW - sW);
+                    const newTop  = Math.min(Math.max(startTop  + dy, 0), parentH - sH);
+
+                    el.style.left = newLeft + "px";
+                    el.style.top  = newTop  + "px";
+                }
+
+                function onUp() {
+                    window.removeEventListener("mousemove", onMove);
+                    window.removeEventListener("mouseup",   onUp);
+                    window.removeEventListener("touchmove", onMove);
+                    window.removeEventListener("touchend",  onUp);
+                }
+
+                el.addEventListener("mousedown",  onDown);
+                el.addEventListener("touchstart", onDown, { passive: false });
+            }
+
+            document.getElementById("redoBtn").addEventListener("click", () => {
+                document.getElementById("stickerLayer").innerHTML = "";
+            })
+            // ---- export: flatten strip + stickers into one image ----
+            document.getElementById("exportBtn").addEventListener("click", async () => {
+                const stripImg = document.getElementById("finalStrip");
+
+                // create a canvas the same size as the saved strip image
+                const canvas = document.createElement("canvas");
+                canvas.width  = stripImg.naturalWidth;
+                canvas.height = stripImg.naturalHeight;
+                const ctx = canvas.getContext("2d");
+
+                // draw the base photo strip
+                ctx.drawImage(stripImg, 0, 0, canvas.width, canvas.height);
+
+                // scale factor: canvas is naturalWidth wide, display is offsetWidth wide
+                const scale = canvas.width / stripImg.offsetWidth;
+
+                // draw each placed sticker at the scaled position
+                const placedStickers = stickerLayer.querySelectorAll(".placed-sticker");
+                for (const s of placedStickers) {
+                    const x = parseFloat(s.style.left)  * scale;
+                    const y = parseFloat(s.style.top)   * scale;
+                    const w = s.offsetWidth              * scale;
+                    const h = s.offsetHeight             * scale;
+
+                    // load the sticker into a fresh image to draw from
+                    await new Promise(resolve => {
+                        const img = new Image();
+                        img.onload = () => {
+                            ctx.drawImage(img, x, y, w, h);
+                            resolve();
+                        };
+                        img.src = s.src;
+                    });
+                }
+
+                // download
+                canvas.toBlob(blob => {
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(blob);
+                    a.download = "flux-o-matic.png";
+                    a.click();
+                }, "image/png");
+            });
+        </script>
+    </body>
+    </html>
