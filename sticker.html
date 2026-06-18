@@ -40,7 +40,6 @@
                 padding: 10px 30px;
             }
 
-            /* --- strip side --- */
             .strip-wrapper {
                 position: relative;
                 flex-shrink: 0;
@@ -52,12 +51,12 @@
                 height: auto;
             }
 
-            /* stickers dropped onto the strip live here */
+            /* stickers container */
             #stickerLayer {
                 position: absolute;
                 top: 0; left: 0;
                 width: 100%; height: 100%;
-                pointer-events: none; /* clicks pass through to drag logic */
+                pointer-events: none;
                 overflow: hidden;
             }
 
@@ -72,7 +71,6 @@
 
             .placed-sticker:active { cursor: grabbing; }
 
-            /* --- sticker panel side --- */
             .sticker-panel {
                 width: 220px;
                 flex-shrink: 0;
@@ -96,11 +94,10 @@
                 display: grid;
                 grid-template-columns: 1fr 1fr;
                 gap: 10px;
-                overflow-y: auto;      /* scroll if too many stickers */
+                overflow-y: auto;     
                 padding-right: 4px;
             }
 
-            /* thin scrollbar so it doesn't look ugly */
             .sticker-grid::-webkit-scrollbar { width: 5px; }
             .sticker-grid::-webkit-scrollbar-track { background: #2a1738; border-radius: 5px; }
             .sticker-grid::-webkit-scrollbar-thumb { background: gold; border-radius: 5px; }
@@ -185,7 +182,6 @@
 
         <div class="content-row">
 
-            <!-- LEFT: photo strip + draggable sticker layer on top -->
             <div class="strip-wrapper" id="stripWrapper">
                 <img id="finalStrip">
                 <div id="stickerLayer"></div>
@@ -273,8 +269,6 @@
                     e.preventDefault();
                     const point = e.touches ? e.touches[0] : e;
 
-                    // remove centering transform once we start dragging
-                    // so left/top are the real position
                     const rect = el.getBoundingClientRect();
                     const parentRect = stickerLayer.getBoundingClientRect();
                     el.style.transform = "none";
@@ -325,11 +319,9 @@
             document.getElementById("redoBtn").addEventListener("click", () => {
                 document.getElementById("stickerLayer").innerHTML = "";
             })
-            // ---- export: flatten strip + stickers into one image ----
             document.getElementById("exportBtn").addEventListener("click", async () => {
                 const stripImg = document.getElementById("finalStrip");
 
-                // create a canvas the same size as the saved strip image
                 const canvas = document.createElement("canvas");
                 canvas.width  = stripImg.naturalWidth;
                 canvas.height = stripImg.naturalHeight;
@@ -341,7 +333,6 @@
                 // scale factor: canvas is naturalWidth wide, display is offsetWidth wide
                 const scale = canvas.width / stripImg.offsetWidth;
 
-                // draw each placed sticker at the scaled position
                 const placedStickers = stickerLayer.querySelectorAll(".placed-sticker");
                 for (const s of placedStickers) {
                     const x = parseFloat(s.style.left)  * scale;
