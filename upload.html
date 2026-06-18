@@ -86,7 +86,6 @@
 
         #moeButton { display: none; }
 
-        /* frame and container share same position — same as camera page */
         #photostrip,
         #strip-container {
             position: absolute;
@@ -107,7 +106,6 @@
             z-index: 5;
         }
 
-        /* photo boxes — same positions as camera page */
         .photo-box {
             position: absolute;
             width: 265px;
@@ -116,7 +114,7 @@
             cursor: pointer;
         }
 
-        /* empty state — dashed border prompts the user to click */
+        /* empty state */
         .photo-box.empty {
             background: rgba(255, 255, 255, 0.15);
             border: 3px dashed rgba(255, 255, 255, 0.5);
@@ -131,7 +129,7 @@
             color: rgba(255, 255, 255, 0.6);
         }
 
-        /* filled state — show the image, hide the + */
+        /* filled state */
         .photo-box.filled {
             background: none;
             border: none;
@@ -141,14 +139,14 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: none; /* hidden until a photo is loaded */
+            display: none; 
         }
 
         .photo-box.filled img {
             display: block;
         }
 
-        /* hover on filled box hints it's replaceable */
+        /* hover hints */
         .photo-box.filled:hover::after {
             content: "replace";
             position: absolute;
@@ -166,7 +164,6 @@
         #box3 { top: 244px; left: 130px; }
         #box4 { top: 244px; left: 417px; }
 
-        /* hidden file input — triggered by clicking a box */
         #fileInput { display: none; }
     </style>
 </head>
@@ -186,7 +183,6 @@
             <div class="photo-box empty" id="box4"><img id="photo4"></div>
         </div>
 
-        <!-- one hidden file input, reused for all four boxes -->
         <input type="file" id="fileInput" accept="image/*">
 
         <div class="buttons">
@@ -209,7 +205,6 @@
         scaleStage();
         window.addEventListener('resize', scaleStage);
 
-        // ---- state ----
         const photoImgs = [
             document.getElementById("photo1"),
             document.getElementById("photo2"),
@@ -267,13 +262,12 @@
             reader.readAsDataURL(file);
         });
 
-        // ---- called when all 4 boxes are filled ----
         function onAllFilled() {
             saveFinalStrip();
             document.getElementById("moeButton").style.display = "block";
         }
 
-        // ---- reset: clear all boxes ----
+        // ---- reset/clear ----
         document.getElementById("resetBtn").addEventListener("click", () => {
             photoImgs.forEach(img => { img.src = ""; });
             boxes.forEach(box => {
@@ -285,7 +279,6 @@
             localStorage.removeItem("finalPhotostrip");
         });
 
-        // ---- save — identical logic to camera page ----
         async function saveFinalStrip() {
             const frame = new Image();
             frame.src = "assets/photostrip.png";
@@ -309,7 +302,6 @@
                 const img = photoImgs[i];
                 const pos = CANVAS_POSITIONS[i];
 
-                // crop uploaded image to match hole aspect ratio
                 const holeAspect = HOLE_W / HOLE_H;
                 const imgAspect  = img.naturalWidth / img.naturalHeight;
 
